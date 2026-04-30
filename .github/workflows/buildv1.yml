@@ -1,0 +1,91 @@
+name: buildboaa
+
+on:
+  workflow_dispatch:
+    inputs:
+      BUILD_TITLE:
+        description: 'Custom Build Title'
+        required: false
+      KERNEL_TREE:
+        description: 'Kernel Tree'
+        default: 'https://github.com/harunaltair/kernel_xiaomi_peridot'
+        required: true
+      KERNEL_TREE_BRANCH:
+        description: 'Kernel Tree Branch'
+        required: true
+        default: 'main'
+      CODENAME:
+        description: 'Phone Codename'
+        default: 'peridot'
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Generate Build Date
+      id: build_date
+      run: echo "build_date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+
+    - name: Prepare environment
+      run: |
+        sudo apt update -y
+        sudo apt install -y flex bison libncurses-dev libssl-dev bc build-essential git ccache binutils-aarch64-linux-gnu
+
+        mkdir -p $HOME/tc
+        cd $HOME/tc
+        wget https://github.com/XSans0/WeebX-Clang/releases/download/WeebX-Clang-20.0.0git-release/WeebX-Clang-20.0.0git.tar.gz -O clang.tar.gz
+        mkdir clang
+        tar -xf clang.tar.gz -C clang
+
+    - name: Clone kernel source
+      run: |
+        git clone --depth=1 ${{ github.event.inputs.KERNEL_TREE }} \
+        -b ${{ github.event.inputs.KERNEL_TREE_BRANCH }} kernel
+        echo "KERNEL_DIR=$(pwd)/kernel" >> $GITHUB_ENV
+
+    - name: Build kernel (no KernelSU)
+      run: |
+        cd $KERNEL_DIR
+
+        export PATH="$HOME/tc/clang/bin:$PATH"
+        export LD_LIBRARY_PATH=$HOME/tc/clang/lib64:$LD_LIBRARY_PATH
+
+        DATE=$(date '+%Y%m%d-%H%M')
+        OUT_DIR=out
+        VERSION="BoAA-${DATE}"
+
+        JOBS=$(nproc)
+
+        ARGS="ARCH=arm64 \
+        O=${OUT_DIR} \
+        CC=clang \
+        LD=ld.lld \
+        CLANG_TRIPLE=aarch64-linux-gnu- \
+        CROSS_COMPILE=aarch64-linux-gnu- \
+        CROSS_COMPILE_COMPAT=arm-linux-gnueabi- \
+        -j${JOBS}"
+
+        make ${ARGS} peridot_defconfig
+        make ${ARGS}
+
+        if [ -f "out/arch/arm64/boot/Image.gz" ]; then
+            git clone --depth=1 https://github.com/qoinsec/ak3 ak3
+            cp out/arch/arm64/boot/Image.gz ak3/
+
+            cd ak3
+            zip -r9 "../${VERSION}.zip" * -x '*.git*' README.md *placeholder > /dev/null
+            cd ..
+
+            echo "ZIP_NAME=${VERSION}.zip" >> $GITHUB_ENV
+        else
+            echo "Build failed"
+            exit 1
+        fi
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: kernel-${{ github.event.inputs.CODENAME }}
+        path: ${{ env.KERNEL_DIR }}/${{ env.ZIP_NAME }}
