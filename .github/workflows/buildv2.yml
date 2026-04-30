@@ -239,48 +239,48 @@ jobs:
           cp out/arch/arm64/boot/Image.gz ak3/
 
           # Embed changelog
-          cat > ak3/changelog.txt << CHANGELOG
-SweetKernel for Peridot — ${DATE}
-==================================
-• Google 6.1.166 LTS base
-• XClang LLVM 22.1.2
-• BBRplus, BBRv3, TCP Brutal congestion control
-• TCP Fast Open enabled
-• NTSync support
-• WireGuard built-in
-• ADIOS I/O Scheduler
-• mm: vmpressure proactive-reclaim fix (backport)
-• memcg: per-memcg reclaim interface (backport)
-• Fix charging_enabled node disabled state
-• Implement charging_enabled node
-• Add dummy props to align xm_property_id
-• Guard SLAVE_CHIP_OK and SLAVE_AUTHENTIC (dual fuel gauge)
-• Add software_cid node
-• Add screen_cctog node
-• Add reverse_quick_charge node
-• Add over_vol_duration node
-• Add open_loadsw node
-• Add max_life_temp and max_life_vol node
-• Add dod_countLT node
-• Add cloud_dynamic_shutdown_data node
-• Add batt_sn node
-• Revert "drm: Add valid clones check"
-• Guard MIN() macro with #ifndef
-• Fix fastcharge mode 1 detection
-• Refine fastcharge control logic
-• Implement fastcharge enable node
-• Enlarge transmit buffer
-• Introduce fod_finger_state node
-• Add support for fold_status
-• Register panel event notifier types
-• Add new xiaomi touch driver header
-• Compare mtd dump reasons against mtd enums
-• Initial peridot fragment
-• Add defines for needed projects
-• Skip blacklisted modules gracefully instead of -EPERM
-• Force loading of modules that fail symbol version checks
-• Fix const qualifier in resolve_full_path()
-CHANGELOG
+          printf '%s\n' \
+            "SweetKernel for Peridot - ${DATE}" \
+            "==================================" \
+            "- Google 6.1.166 LTS base" \
+            "- XClang LLVM 22.1.2" \
+            "- BBRplus, BBRv3, TCP Brutal congestion control" \
+            "- TCP Fast Open enabled" \
+            "- NTSync support" \
+            "- WireGuard built-in" \
+            "- ADIOS I/O Scheduler" \
+            "- mm: vmpressure proactive-reclaim fix (backport)" \
+            "- memcg: per-memcg reclaim interface (backport)" \
+            "- Fix charging_enabled node disabled state" \
+            "- Implement charging_enabled node" \
+            "- Add dummy props to align xm_property_id" \
+            "- Guard SLAVE_CHIP_OK and SLAVE_AUTHENTIC (dual fuel gauge)" \
+            "- Add software_cid node" \
+            "- Add screen_cctog node" \
+            "- Add reverse_quick_charge node" \
+            "- Add over_vol_duration node" \
+            "- Add open_loadsw node" \
+            "- Add max_life_temp and max_life_vol node" \
+            "- Add dod_countLT node" \
+            "- Add cloud_dynamic_shutdown_data node" \
+            "- Add batt_sn node" \
+            "- Revert drm: Add valid clones check" \
+            "- Guard MIN() macro with #ifndef" \
+            "- Fix fastcharge mode 1 detection" \
+            "- Refine fastcharge control logic" \
+            "- Implement fastcharge enable node" \
+            "- Enlarge transmit buffer" \
+            "- Introduce fod_finger_state node" \
+            "- Add support for fold_status" \
+            "- Register panel event notifier types" \
+            "- Add new xiaomi touch driver header" \
+            "- Compare mtd dump reasons against mtd enums" \
+            "- Initial peridot fragment" \
+            "- Add defines for needed projects" \
+            "- Skip blacklisted modules gracefully instead of -EPERM" \
+            "- Force loading of modules that fail symbol version checks" \
+            "- Fix const qualifier in resolve_full_path()" \
+            > ak3/changelog.txt
 
           cd ak3
           zip -r9 "../${VERSION}.zip" * -x '*.git*' README.md *placeholder > /dev/null
