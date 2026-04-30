@@ -54,7 +54,7 @@ jobs:
 
         DATE=$(date '+%Y%m%d-%H%M')
         OUT_DIR=out
-        VERSION="BoAA-${DATE}"
+        VERSION="SweetKernel-Peridot-${DATE}"
 
         JOBS=$(nproc)
 
