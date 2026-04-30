@@ -1,4 +1,4 @@
-name: buildboaa
+name: builderv1
 
 on:
   workflow_dispatch:
