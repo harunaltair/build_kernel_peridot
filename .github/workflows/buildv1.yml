@@ -8,7 +8,7 @@ on:
         required: false
       KERNEL_TREE:
         description: 'Kernel Tree'
-        default: 'https://github.com/harunaltair/kernel_xiaomi_peridot'
+        default: 'https://github.com/harunaltair/build_kernel_peridot'
         required: true
       KERNEL_TREE_BRANCH:
         description: 'Kernel Tree Branch'
