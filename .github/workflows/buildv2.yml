@@ -43,14 +43,9 @@ jobs:
         # ── Toolchain: XClang LLVM 22.1.2 ──
         mkdir -p $HOME/tc/clang
         cd $HOME/tc
-        echo "Downloading XClang LLVM 22.1.2..."
-        wget -q https://github.com/XSans0/WeebX-Clang/releases/download/WeebX-Clang-22.1.2-release/WeebX-Clang-22.1.2.tar.gz \
-             -O clang.tar.gz || {
-          # Fallback: try zyc-clang 22 if WeebX 22 not yet released
-          echo "Falling back to ZyC-Clang 22..."
-          wget -q https://github.com/ZyCromerZ/Clang/releases/download/22.0.0-20250101-release/Clang-22.0.0-20250101.tar.gz \
-               -O clang.tar.gz
-        }
+        echo "Downloading ZyC-Clang 22.0.0git-20250928..."
+        wget -q https://github.com/ZyCromerZ/Clang/releases/download/22.0.0git-20250928-release/Clang-22.0.0git-20250928.tar.gz \
+             -O clang.tar.gz
         tar -xf clang.tar.gz -C clang
 
     - name: Clone kernel source
@@ -243,7 +238,7 @@ jobs:
             "SweetKernel for Peridot - ${DATE}" \
             "==================================" \
             "- Google 6.1.166 LTS base" \
-            "- XClang LLVM 22.1.2" \
+            "- ZyC-Clang 22.0.0git-20250928" \
             "- BBRplus, BBRv3, TCP Brutal congestion control" \
             "- TCP Fast Open enabled" \
             "- NTSync support" \
