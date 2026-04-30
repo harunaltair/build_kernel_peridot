@@ -71,7 +71,7 @@ jobs:
         make ${ARGS}
 
         if [ -f "out/arch/arm64/boot/Image.gz" ]; then
-            git clone --depth=1 https://github.com/qoinsec/ak3 ak3
+            git clone --depth=1 https://github.com/harunaltair/ak3 ak3
             cp out/arch/arm64/boot/Image.gz ak3/
 
             cd ak3
