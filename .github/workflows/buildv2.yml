@@ -79,14 +79,14 @@ jobs:
     - name: Apply defconfig extras (BBR, WireGuard, TCP Fast Open)
       run: |
         cd $KERNEL_DIR
-        cat >> arch/arm64/configs/peridot_defconfig << 'EOF'
-CONFIG_TCP_CONG_BBR=y
-CONFIG_DEFAULT_TCP_CONG="bbr"
-CONFIG_WIREGUARD=y
-CONFIG_WIREGUARD_DEBUG=n
-CONFIG_IP_NF_TARGET_TTL=y
-CONFIG_IPV6_NF_TARGET_HL=y
-EOF
+        printf '%s\n' \
+          "CONFIG_TCP_CONG_BBR=y" \
+          "CONFIG_DEFAULT_TCP_CONG=\"bbr\"" \
+          "CONFIG_WIREGUARD=y" \
+          "CONFIG_WIREGUARD_DEBUG=n" \
+          "CONFIG_IP_NF_TARGET_TTL=y" \
+          "CONFIG_IPV6_NF_TARGET_HL=y" \
+          >> arch/arm64/configs/peridot_defconfig
         echo "defconfig extras applied"
 
     - name: Build kernel
