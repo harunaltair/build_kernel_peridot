@@ -60,21 +60,14 @@ jobs:
         echo "Kernel version after bump:"
         head -5 Makefile
 
-    - name: Apply ADIOS I/O Scheduler (firelzrd)
-      run: |
-        cd $KERNEL_DIR
-        git clone --depth=1 https://github.com/firelzrd/adios /tmp/adios-src
-        find /tmp/adios-src -maxdepth 2 -name "*.c" -exec cp {} block/ \;
-        find /tmp/adios-src -maxdepth 2 -name "*.h" -exec cp {} block/ \;
-        echo "ADIOS files copied:"
-        ls block/*adios* 2>/dev/null || echo "Tidak ada file adios di block/"
-
     - name: Apply TCP Brutal
       run: |
         cd $KERNEL_DIR
         git clone --depth=1 https://github.com/apernet/tcp-brutal /tmp/tcp-brutal-src
-        cp /tmp/tcp-brutal-src/kernel/brutal.c net/ipv4/ 2>/dev/null && echo "brutal.c copied" || echo "brutal.c tidak ditemukan"
-        cp /tmp/tcp-brutal-src/kernel/brutal.h include/net/ 2>/dev/null && echo "brutal.h copied" || echo "brutal.h tidak ditemukan"
+        echo "Isi repo tcp-brutal:"
+        ls /tmp/tcp-brutal-src/
+        cp /tmp/tcp-brutal-src/brutal.c net/ipv4/ 2>/dev/null && echo "brutal.c copied" || echo "brutal.c tidak ditemukan"
+        cp /tmp/tcp-brutal-src/brutal.h include/net/ 2>/dev/null && echo "brutal.h copied" || echo "brutal.h tidak ditemukan"
 
     - name: Apply defconfig extras (BBR, WireGuard, TCP Fast Open)
       run: |
