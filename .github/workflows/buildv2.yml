@@ -35,22 +35,18 @@ jobs:
     - name: Prepare environment
       run: |
         sudo apt update -y
-        sudo apt install -y \
-          flex bison libncurses-dev libssl-dev bc build-essential git \
-          ccache binutils-aarch64-linux-gnu curl wget zip python3 \
-          libelf-dev pahole lz4 zstd
+        sudo apt install -y flex bison libncurses-dev libssl-dev bc build-essential git ccache binutils-aarch64-linux-gnu
 
-        mkdir -p $HOME/tc/clang
+        mkdir -p $HOME/tc
         cd $HOME/tc
-        echo "Downloading ZyC-Clang 22.0.0git-20250928..."
-        wget -q https://github.com/ZyCromerZ/Clang/releases/download/22.0.0git-20250928-release/Clang-22.0.0git-20250928.tar.gz \
-             -O clang.tar.gz
+        wget https://github.com/XSans0/WeebX-Clang/releases/download/WeebX-Clang-20.0.0git-release/WeebX-Clang-20.0.0git.tar.gz -O clang.tar.gz
+        mkdir clang
         tar -xf clang.tar.gz -C clang
 
     - name: Clone kernel source
       run: |
         git clone --depth=1 ${{ github.event.inputs.KERNEL_TREE }} \
-          -b ${{ github.event.inputs.KERNEL_TREE_BRANCH }} kernel
+        -b ${{ github.event.inputs.KERNEL_TREE_BRANCH }} kernel
         echo "KERNEL_DIR=$(pwd)/kernel" >> $GITHUB_ENV
 
     - name: Bump SUBLEVEL to 166 (Google 6.1.166 LTS)
@@ -64,22 +60,66 @@ jobs:
       run: |
         cd $KERNEL_DIR
         git clone --depth=1 https://github.com/apernet/tcp-brutal /tmp/tcp-brutal-src
-        echo "Isi repo tcp-brutal:"
-        ls /tmp/tcp-brutal-src/
-        cp /tmp/tcp-brutal-src/brutal.c net/ipv4/ 2>/dev/null && echo "brutal.c copied" || echo "brutal.c tidak ditemukan"
-        cp /tmp/tcp-brutal-src/brutal.h include/net/ 2>/dev/null && echo "brutal.h copied" || echo "brutal.h tidak ditemukan"
+        cp /tmp/tcp-brutal-src/brutal.c net/ipv4/ && echo "brutal.c copied" || echo "brutal.c tidak ditemukan"
 
-    - name: Apply defconfig extras (BBR, WireGuard, TCP Fast Open)
+    - name: Apply defconfig extras
       run: |
         cd $KERNEL_DIR
+
+        # KernelSU optional
+        if [ "${{ github.event.inputs.USE_KSU }}" = "true" ]; then
+          echo "Integrating KernelSU..."
+          curl -LSs https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh | bash -
+          echo "CONFIG_KSU=y" >> arch/arm64/configs/peridot_defconfig
+        fi
+
         printf '%s\n' \
+          "" \
+          "# === SweetKernel extras ===" \
+          "" \
+          "# LLVM O3 + ThinLTO" \
+          "CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y" \
+          "CONFIG_LTO_CLANG_THIN=y" \
+          "CONFIG_LTO_CLANG=y" \
+          "" \
+          "# Disable debug sanitizers (zero overhead)" \
+          "# CONFIG_KASAN is not set" \
+          "# CONFIG_UBSAN is not set" \
+          "# CONFIG_KCSAN is not set" \
+          "# CONFIG_DEBUG_KERNEL is not set" \
+          "" \
+          "# Tick rate HZ=300" \
+          "CONFIG_HZ_300=y" \
+          "CONFIG_HZ=300" \
+          "" \
+          "# Scheduler: Schedutil + TEO idle governor" \
+          "CONFIG_CPU_FREQ_DEFAULT_GOV_SCHEDUTIL=y" \
+          "CONFIG_CPU_IDLE_GOV_TEO=y" \
+          "" \
+          "# Memory: ZRAM LZ4 + ZSMALLOC + PSI + MEMCG" \
+          "CONFIG_ZRAM=y" \
+          "CONFIG_ZRAM_DEF_COMP_LZ4=y" \
+          "CONFIG_ZSMALLOC=y" \
+          "CONFIG_PSI=y" \
+          "CONFIG_MEMCG=y" \
+          "CONFIG_MEMCG_SWAP=y" \
+          "" \
+          "# Connectivity: BBR + FQ_CODEL + WireGuard" \
           "CONFIG_TCP_CONG_BBR=y" \
           "CONFIG_DEFAULT_TCP_CONG=\"bbr\"" \
+          "CONFIG_NET_SCH_FQ_CODEL=y" \
           "CONFIG_WIREGUARD=y" \
           "CONFIG_WIREGUARD_DEBUG=n" \
-          "CONFIG_IP_NF_TARGET_TTL=y" \
-          "CONFIG_IPV6_NF_TARGET_HL=y" \
+          "" \
+          "# Storage: BFQ I/O scheduler" \
+          "CONFIG_IOSCHED_BFQ=y" \
+          "CONFIG_MQ_IOSCHED_BFQ=y" \
+          "CONFIG_DEFAULT_IOSCHED=\"bfq\"" \
+          "" \
+          "# Overlay FS (systemless support)" \
+          "CONFIG_OVERLAY_FS=y" \
           >> arch/arm64/configs/peridot_defconfig
+
         echo "defconfig extras applied"
 
     - name: Build kernel
@@ -87,32 +127,22 @@ jobs:
         cd $KERNEL_DIR
 
         export PATH="$HOME/tc/clang/bin:$PATH"
-        export LD_LIBRARY_PATH="$HOME/tc/clang/lib64:$LD_LIBRARY_PATH"
+        export LD_LIBRARY_PATH=$HOME/tc/clang/lib64:$LD_LIBRARY_PATH
 
         DATE=$(date '+%Y%m%d-%H%M')
         OUT_DIR=out
         VERSION="SweetKernel-Peridot-${DATE}"
-        JOBS=$(nproc --all)
+
+        JOBS=$(nproc)
 
         ARGS="ARCH=arm64 \
-          O=${OUT_DIR} \
-          CC=clang \
-          LD=ld.lld \
-          AR=llvm-ar \
-          NM=llvm-nm \
-          OBJCOPY=llvm-objcopy \
-          OBJDUMP=llvm-objdump \
-          STRIP=llvm-strip \
-          CLANG_TRIPLE=aarch64-linux-gnu- \
-          CROSS_COMPILE=aarch64-linux-gnu- \
-          CROSS_COMPILE_COMPAT=arm-linux-gnueabi- \
-          -j${JOBS}"
-
-        if [ "${{ github.event.inputs.USE_KSU }}" = "true" ]; then
-          echo "Integrating KernelSU..."
-          curl -LSs https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh | bash -
-          echo "CONFIG_KSU=y" >> arch/arm64/configs/peridot_defconfig
-        fi
+        O=${OUT_DIR} \
+        CC=clang \
+        LD=ld.lld \
+        CLANG_TRIPLE=aarch64-linux-gnu- \
+        CROSS_COMPILE=aarch64-linux-gnu- \
+        CROSS_COMPILE_COMPAT=arm-linux-gnueabi- \
+        -j${JOBS}"
 
         make ${ARGS} peridot_defconfig
         make ${ARGS}
@@ -125,18 +155,17 @@ jobs:
             "SweetKernel for Peridot - ${DATE}" \
             "==================================" \
             "- Google 6.1.166 LTS base" \
-            "- ZyC-Clang 22.0.0git-20250928" \
-            "- BBR congestion control" \
+            "- WeebX-Clang 20.0.0git" \
+            "- O3 + ThinLTO optimization" \
+            "- No debug sanitizers (KASAN/UBSAN/KCSAN off)" \
+            "- HZ=300 tick rate" \
+            "- Schedutil governor + TEO idle" \
+            "- ZRAM LZ4 + ZSMALLOC + PSI + MEMCG" \
+            "- BBR TCP + FQ_CODEL" \
             "- WireGuard built-in" \
             "- TCP Brutal" \
-            "- ADIOS I/O Scheduler (firelzrd)" \
-            "- TCP Fast Open" \
-            "- charging_enabled node" \
-            "- fastcharge support" \
-            "- Skip blacklisted modules gracefully" \
-            "- Force loading modules (symbol version check bypass)" \
-            "- Fix const qualifier in resolve_full_path()" \
-            "- Guard MIN() macro with ifndef" \
+            "- BFQ I/O Scheduler" \
+            "- OverlayFS (systemless support)" \
             > ak3/changelog.txt
 
           cd ak3
